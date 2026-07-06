@@ -1,0 +1,101 @@
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Statement;
+
+public class DatabaseManager {
+    private static final String URL = "jdbc:h2:mem:usersdb;DB_CLOSE_DELAY=-1";
+    private static final String USER = "sa";
+    private static final String PASSWORD = "";
+
+    public static void setupDatabase() {
+        String createTableSQL = "CREATE TABLE IF NOT EXISTS users (" +
+                "id INT AUTO_INCREMENT PRIMARY KEY, " +
+                "name VARCHAR(100) NOT NULL, " +
+                "email VARCHAR(100) NOT NULL UNIQUE" +
+                ");";
+        try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD);
+             Statement stmt = conn.createStatement()) {
+            stmt.execute(createTableSQL);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void createUser(String name, String email) {
+        String insertSQL = "INSERT INTO users (name, email) VALUES (?, ?);";
+        try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD);
+             PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
+            pstmt.setString(1, name);
+            pstmt.setString(2, email);
+            pstmt.executeUpdate();
+            System.out.println("User created: " + name);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void readUsers() {
+        String selectSQL = "SELECT * FROM users;";
+        try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD);
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(selectSQL)) {
+            while (rs.next()) {
+                System.out.println("ID: " + rs.getInt("id") + 
+                                   " | Name: " + rs.getString("name") + 
+                                   " | Email: " + rs.getString("email"));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void updateUserEmail(int id, String newEmail) {
+        String updateSQL = "UPDATE users SET email = ? WHERE id = ?;";
+        try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD);
+             PreparedStatement pstmt = conn.prepareStatement(updateSQL)) {
+            pstmt.setString(1, newEmail);
+            pstmt.setInt(2, id);
+            int rows = pstmt.executeUpdate();
+            if (rows > 0) {
+                System.out.println("User ID " + id + " email updated successfully.");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void deleteUser(int id) {
+        String deleteSQL = "DELETE FROM users WHERE id = ?;";
+        try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD);
+             PreparedStatement pstmt = conn.prepareStatement(deleteSQL)) {
+            pstmt.setInt(1, id);
+            int rows = pstmt.executeUpdate();
+            if (rows > 0) {
+                System.out.println("User ID " + id + " deleted successfully.");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+public class Main {
+    public static void main(String[] args) {
+        DatabaseManager.setupDatabase();
+        
+        DatabaseManager.createUser("Alice Smith", "alice@example.com");
+        DatabaseManager.createUser("Bob Jones", "bob@example.com");
+        
+        System.out.println("\n--- Fetching All Users ---");
+        DatabaseManager.readUsers();
+        
+        System.out.println("\n--- Updating Bob's Email ---");
+        DatabaseManager.updateUserEmail(2, "bob.jones@newdomain.com");
+        DatabaseManager.readUsers();
+        
+        System.out.println("\n--- Deleting Alice ---");
+        DatabaseManager.deleteUser(1);
+        DatabaseManager.readUsers();
+    }
+}
